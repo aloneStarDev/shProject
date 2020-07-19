@@ -5,4 +5,46 @@ to start i use CentOs as OS and if you should linux you should install postgrsql
 
 and at first i should write bash script that download file from url ....
 
+and then install postgrsql ...
+
+to install postgresql in centOs 7 :
+
+===================================================
+sudo yum install postgresql-server postgresql-contrib
+
+sudo postgresql-setup initdb
+
+sudo systemctl start postgresql
+
+sudo systemctl enable postgresql
+
+sudo -u postgres psql postgres
+
+createuser myusername with mypassword 
+// my user name is star and my password is Amirhossein@0022970916
+
+createdb fpdb --owner star
+
+====================================================
+to compile every c program in linux by gcc we use this command to make a 
+executable file and then run it:
+--------------------->
+gcc file.c -o executable
+./executable
+<---------------------
+
+after install all dependensity of c and library
+----------------------> yum install postgresql-devel
+to" add library of postgresql i use C99 for gnu c compiler 
+we need to add "-lpq -std=c99" option
+
+to download and extract input file we use bash script.
+so now i write this bash file
+
+before that i use wget that you can install it from pkg-manager
+and i download http://loh.istgahesalavati.ir/report.gz.tar to /tmp/final_project/
+and also at first time i create a shortcut or link with name data with this command 
+----IN THE PROJECT LOCATION------->  ln -s /tmp/final_project data
+and every time that i call getUpdate.bash ,we resive a new report.gz.tar and extract it on same folder then delete .gz.tar file
+
 
