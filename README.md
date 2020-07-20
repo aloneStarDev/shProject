@@ -36,7 +36,29 @@ for this we sould go to postgres shell
 	---------------> su - postgres
 	---------------> cd data
 	---------------> vim pg_hba.conf
+
 and then we should add own user and database to list with md5 method
+after all of this we should restart our postgresql service and then it's ready to use
+	systemctl restart postgresql
+
+-->creating tables 
+su - postgres
+psql fpdb star -W
+-->then enter your password
+--->now we can type postgres command
+
+CREATE TABLE IF NOT EXISTS fp_stores_data (
+  id SERIAL PRIMARY KEY,
+  time BIGINT,
+  province VARCHAR(50) NOT NULL
+  city VARCHAR(50) NOT NULL,
+  market_id INTEGER NOT NULL,
+  produt_id INEGER NOT NULL,
+  price INTEGER NOT NULL,
+  quantity INTEGER NOT NULL,
+  has_sold INTEGER NOT NULL
+);
+
 ====================================================
 to compile every c program in linux by gcc we use this command to make a 
 executable file and then run it:
