@@ -20,11 +20,23 @@ sudo systemctl enable postgresql
 
 sudo -u postgres psql postgres
 
-createuser myusername with mypassword 
-// my user name is star and my password is Amirhossein@0022970916
+before all we should start postgresql service:
+----->sudo systemctl start postgresql
+to enable it for auto start:
+----->sudo systemctl enable postgresql
 
-createdb fpdb --owner star
-
+create user myusername with password 'mypassword'
+// my userName is star and my password is Amirhossein@0022970916
+create database dbname owner username
+//create database fpdb owner star
+grant previlage on database dbname to username
+//grant all on database fpdb to star
+after doing all of this we should add user to pg_hba.conf
+for this we sould go to postgres shell 
+	---------------> su - postgres
+	---------------> cd data
+	---------------> vim pg_hba.conf
+and then we should add own user and database to list with md5 method
 ====================================================
 to compile every c program in linux by gcc we use this command to make a 
 executable file and then run it:
@@ -46,5 +58,8 @@ and i download http://loh.istgahesalavati.ir/report.gz.tar to /tmp/final_project
 and also at first time i create a shortcut or link with name data with this command 
 ----IN THE PROJECT LOCATION------->  ln -s /tmp/final_project data
 and every time that i call getUpdate.bash ,we resive a new report.gz.tar and extract it on same folder then delete .gz.tar file
+
+---------------------------------------------
+today i start to write index.c that contain psql lib
 
 
