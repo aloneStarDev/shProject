@@ -50,10 +50,10 @@ psql fpdb star -W
 CREATE TABLE IF NOT EXISTS fp_stores_data (
   id SERIAL PRIMARY KEY,
   time BIGINT,
-  province VARCHAR(50) NOT NULL
+  province VARCHAR(50) NOT NULL,
   city VARCHAR(50) NOT NULL,
   market_id INTEGER NOT NULL,
-  produt_id INEGER NOT NULL,
+  product_id INTEGER NOT NULL,
   price INTEGER NOT NULL,
   quantity INTEGER NOT NULL,
   has_sold INTEGER NOT NULL
