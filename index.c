@@ -7,7 +7,6 @@
 
 void closeConn(PGconn * conn){	
 	PQfinish(conn);
-	exit(1);	
 }
 struct Data{
 	long time;
@@ -41,8 +40,12 @@ char * printfiles(){
 		if(strcmp(ent->d_name,".")==0 || strcmp(ent->d_name,"..")==0)
 			continue;
 		else{
+			// int len = strlen(ent->d_name);
+    		// if(len > 5 && strcmp(ent->d_name + len - 5, ".text") == 0)
+			// {
 			closedir (dir);
 			return ent->d_name;
+			// }			
 		}
 	}
 	return NULL;
@@ -61,14 +64,19 @@ void fetch_data(char * address)
 	}
 	int counter =0;
 	FILE * fp = fopen(address,"a+");
-	struct CityAggregation * ca = (struct CityAggregation *) malloc(sizeof(struct CityAggregation *));
-	while(1){
-		char line[200];
+	struct CityAggregation * ca = NULL;
+	while(!feof(fp)){
+		char *line =(char *) malloc(200);
+		fflush(fp);
 		fgets(line,200,fp);
-		if(line[0]<'0' || line[0]>'9'){
-			break;
-			printf("test");
+		// printf("%s\n",line);
+		if(feof(fp))
+		{
+			printf("test1\n");
+			if(ca !=NULL)
+				free(ca);
 			closeConn(conn);
+			break;
 		}
 		struct Data * d = (struct Data *) malloc(sizeof(struct Data));
 		char * item = NULL;
@@ -78,7 +86,8 @@ void fetch_data(char * address)
 		strcpy(d->province,item);
 		item = strtok(NULL,",");
 		strcpy(d->city,item);
-		if(strcmp(ca->city,d->city)==0)
+		// printf("%d\n",counter);
+		if(ca !=NULL && strcmp(ca->city,d->city)==0)
 			counter++;
 		else if (counter != 0){
 			// printf("%s ===========> %d\n",ca->city,counter);
@@ -87,11 +96,14 @@ void fetch_data(char * address)
 			sprintf(cmdCityAggregation,"insert into fp_city_aggregation (time,province,city,price,quantity,has_sold) values(%ld,'%s','%s',%ld,%d,%d)",ca->time,ca->province,ca->city,ca->avgPrice,ca->quantity,ca->has_sold);
 			PGresult * rs = PQexec(conn,cmdCityAggregation);
 			// printf("%s\n",cmdCityAggregation);
+			free(cmdCityAggregation);
 			if (PQresultStatus(rs) != PGRES_COMMAND_OK){
 				printf("an error accurre:%s",PQerrorMessage(conn));
-				closeConn(conn); 
+				closeConn(conn);
 			}
 			PQclear(rs);
+			free(ca);
+			ca = (struct CityAggregation *) malloc(sizeof(struct CityAggregation *));
 			counter = 1;
 			ca->has_sold=0;
 			ca->quantity=0;
@@ -100,7 +112,11 @@ void fetch_data(char * address)
 			strcpy(ca->city,d->city);
 			strcpy(ca->province,d->province);
 		}else{
-			ca->time = d->time;
+			ca = (struct CityAggregation *) malloc(sizeof(struct CityAggregation *));
+			ca->has_sold=0;
+			ca->quantity=0;
+			ca->avgPrice=0;
+			ca->time=d->time;
 			strcpy(ca->city,d->city);
 			strcpy(ca->province,d->province);
 			counter++;
@@ -124,19 +140,19 @@ void fetch_data(char * address)
 		char * cmd = malloc(300);
 		sprintf(cmd,"Insert into fp_stores_data (time,province,city,market_id,product_id,price,quantity,has_sold)values(%ld,'%s','%s',%d,%d,%ld,%d,%d)",d->time,d->province,d->city,d->market_id,d->product_id,d->price,d->quantity,d->has_sold);
 		free(d);
-		// printf("%s\n",cmd);
 		PGresult * rs = PQexec(conn,cmd);
 		free(cmd);
 	    if (PQresultStatus(rs) != PGRES_COMMAND_OK){
 			printf("an error accurre:%s",PQerrorMessage(conn));
+			PQclear(rs);
      		closeConn(conn); 
 		}
 		// printf("%d\n",counter);
 		PQclear(rs);
-		if(feof(fp))
-			break;
+		free(line);
+		
 	}
-	free(ca);
+	// free(ca);
 	fclose(fp);
 }
 int main() {
@@ -150,11 +166,9 @@ int main() {
 			address[i+5]=file[i];
 		address[l+5]='\0';
 		fetch_data(address);
-		if(remove(address)){
-			printf("err to delete\n");
-			break;		
+		if(!remove(address)){
+			printf("deleted==============Next File============================\n");
 		}
-		
 		file = printfiles();
 	}
 	return 0;
