@@ -3,6 +3,7 @@
 #include <libpq-fe.h>
 #include <string.h>
 #include <dirent.h>
+#include<errno.h>
 
 void closeConn(PGconn * conn){	
 	PQfinish(conn);
@@ -18,6 +19,19 @@ struct Data{
 	int quantity;
 	int has_sold;
 };
+struct CityAggregation{
+	long time;
+	char province[50];
+	char city[50];
+	long avgPrice;
+	int quantity;
+	int has_sold;
+};
+
+void manage_city_aggregation(){
+	
+}
+
 char * printfiles(){
 	DIR *dir;
 	struct dirent *ent;
@@ -47,11 +61,14 @@ void fetch_data(char * address)
 	}
 	int counter =0;
 	FILE * fp = fopen(address,"a+");
+	struct CityAggregation * ca = (struct CityAggregation *) malloc(sizeof(struct CityAggregation *));
 	while(1){
 		char line[200];
 		fgets(line,200,fp);
 		if(line[0]<'0' || line[0]>'9'){
 			break;
+			printf("test");
+			closeConn(conn);
 		}
 		struct Data * d = (struct Data *) malloc(sizeof(struct Data));
 		char * item = NULL;
@@ -61,36 +78,65 @@ void fetch_data(char * address)
 		strcpy(d->province,item);
 		item = strtok(NULL,",");
 		strcpy(d->city,item);
+		if(strcmp(ca->city,d->city)==0)
+			counter++;
+		else if (counter != 0){
+			// printf("%s ===========> %d\n",ca->city,counter);
+			char * cmdCityAggregation = malloc(300);
+			ca->avgPrice/=ca->quantity;
+			sprintf(cmdCityAggregation,"insert into fp_city_aggregation (time,province,city,price,quantity,has_sold) values(%ld,'%s','%s',%ld,%d,%d)",ca->time,ca->province,ca->city,ca->avgPrice,ca->quantity,ca->has_sold);
+			PGresult * rs = PQexec(conn,cmdCityAggregation);
+			// printf("%s\n",cmdCityAggregation);
+			if (PQresultStatus(rs) != PGRES_COMMAND_OK){
+				printf("an error accurre:%s",PQerrorMessage(conn));
+				closeConn(conn); 
+			}
+			PQclear(rs);
+			counter = 1;
+			ca->has_sold=0;
+			ca->quantity=0;
+			ca->avgPrice=0;
+			ca->time=d->time;
+			strcpy(ca->city,d->city);
+			strcpy(ca->province,d->province);
+		}else{
+			ca->time = d->time;
+			strcpy(ca->city,d->city);
+			strcpy(ca->province,d->province);
+			counter++;
+		}
 		item = strtok(NULL,",");
 		d->market_id = (int)strtol(item,NULL,10);
 		item = strtok(NULL,",");
 		d->product_id = (int)strtol(item,NULL,10);
 		item = strtok(NULL,",");
 		d->price = (int)strtol(item,NULL,10);
+		if(strcmp(ca->city,d->city)==0)
+			ca->avgPrice+=d->price;
 		item = strtok(NULL,",");
 		d->quantity = (int)strtol(item,NULL,10);
+		if(strcmp(ca->city,d->city)==0)
+			ca->quantity +=d->quantity;
 		item = strtok(NULL,",");
 		d->has_sold = (int)strtol(item,NULL,10);
-		char text[] = "Insert into fp_stores_data (time,province,city,market_id,product_id,price,quantity,has_sold)values(";
-		char * t = malloc(200);
-		fflush(stdout);
-		sprintf(t,"%ld,'%s','%s',%d,%d,%ld,%d,%d",d->time,d->province,d->city,d->market_id,d->product_id,d->price,d->quantity,d->has_sold);
-		char * cmd = strcat(text,t);
+		if(strcmp(ca->city,d->city)==0)
+			ca->has_sold +=d->has_sold;
+		char * cmd = malloc(300);
+		sprintf(cmd,"Insert into fp_stores_data (time,province,city,market_id,product_id,price,quantity,has_sold)values(%ld,'%s','%s',%d,%d,%ld,%d,%d)",d->time,d->province,d->city,d->market_id,d->product_id,d->price,d->quantity,d->has_sold);
 		free(d);
-		free(t);
-		cmd = strcat(cmd,")");
 		// printf("%s\n",cmd);
 		PGresult * rs = PQexec(conn,cmd);
+		free(cmd);
 	    if (PQresultStatus(rs) != PGRES_COMMAND_OK){
 			printf("an error accurre:%s",PQerrorMessage(conn));
      		closeConn(conn); 
 		}
-		counter++;
 		// printf("%d\n",counter);
 		PQclear(rs);
 		if(feof(fp))
 			break;
 	}
+	free(ca);
 	fclose(fp);
 }
 int main() {
@@ -108,10 +154,6 @@ int main() {
 			printf("err to delete\n");
 			break;		
 		}
-		// else
-		// {
-			// printf("deleted=================");
-		// }
 		
 		file = printfiles();
 	}
