@@ -126,3 +126,11 @@ we also can create some struct to easier work with data
 
 at first i give data from file LINE by LINE then put it to database
 then remove this file and read next file...
+
+after inserting data to database we start using python
+
+to connect to database with python we can use Psycopg2 moudle
+
+sudo apt-get install libpq-dev python-dev
+pip install psycopg2
+
