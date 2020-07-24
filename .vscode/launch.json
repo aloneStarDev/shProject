@@ -12,7 +12,7 @@
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
+            "environment": ["gccpsql"],
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
@@ -23,7 +23,7 @@
                 }
             ],
             "preLaunchTask": "C/C++: gcc-9 build active file",
-            "miDebuggerPath": "/usr/bin/gdb"
+            "miDebuggerPath": "/bin/gdb"
         }
     ]
 }

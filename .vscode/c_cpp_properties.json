@@ -3,18 +3,17 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "/usr/include/postgresql",
+                "/usr/include/linux",
+                "/usr/include/postgresql"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
-            "cStandard": "c11",
-            "cppStandard": "gnu++14",
-            "intelliSenseMode": "clang-x64",
-            "compilerArgs": [
-                "-lpq",
-                "-std=c99",
-                "-I/usr/include/postgresql"
-            ]
+            "cStandard": "c99",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "gcc-x64",
+            "compilerArgs": []
         }
     ],
     "version": 4

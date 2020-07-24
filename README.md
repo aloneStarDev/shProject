@@ -61,13 +61,22 @@ CREATE TABLE IF NOT EXISTS fp_stores_data (
 
 create table fp_city_aggregation
 (
-    id       serial not null constraint fp_city_aggregation_pkey primary key,
+    id       serial not null primary key,
     time     bigint,
     province varchar(50) not null,
     city     varchar(50) not null,
     price    integer     not null,
     quantity integer     not null,
     has_sold integer     not null
+);
+
+create table fp_store_aggregation
+(
+    id        serial  not null primary key,
+    market_id INTEGER NOT NULL,
+    quantity  INTEGER NOT NULL,
+    has_sold  INTEGER NOT NULL,
+    price     BIGINT  NOT NULL
 );
 
 ====================================================

@@ -1,0 +1,6 @@
+{
+    "C_Cpp.default.includePath": [
+        "/usr/include/postgresql"
+    ],
+    "C_Cpp.errorSquiggles": "Disabled"
+}
