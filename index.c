@@ -11,7 +11,7 @@ void closeConn(PGconn * conn){
 	PQfinish(conn);
 }
 
-struct Data{
+struct Data{//we store row data in link list 
 	long time;
 	char province[50];
 	char city[50];
@@ -22,7 +22,7 @@ struct Data{
 	int has_sold;
 	struct Data * next;
 } ;
-struct Data * fData = NULL;
+struct Data * fData = NULL;//pointer----> head of raw Data
 struct Data * AddRowData(
 	struct Data * last,
 	long time ,
@@ -44,6 +44,7 @@ struct Data * AddRowData(
 		data->price = price;
 		data->quantity = quantity;
 		data->has_sold = has_sold;
+		/* at first time at main last == first so we should  allocate a Node for head of linked list */
 		if(last == NULL)
 			fData = data;
 		else
@@ -85,7 +86,7 @@ void InsertCityAggregation(struct CityAggregation * start){
 	conn = PQconnectdb("user=star password=Amirhossein dbname=fpdb");
 	for(struct CityAggregation * d = start;d!=NULL;d=d->next){
 		char * cmd = malloc(300);
-		d->avgPrice/=d->quantity;
+		d->avgPrice/=d->has_sold;//we also update each avrage before insert to database
 		sprintf(cmd,"Insert into fp_city_aggregation (time,province,city,price,quantity,has_sold)values(%ld,'%s','%s',%ld,%d,%d)",d->time,d->province,d->city,d->avgPrice,d->quantity,d->has_sold);
 		PGresult * rs = PQexec(conn,cmd);
 		free(cmd);
@@ -93,52 +94,54 @@ void InsertCityAggregation(struct CityAggregation * start){
 			printf("an error accurre:%s",PQerrorMessage(conn));
 			closeConn(conn); 
 			return;
-		}else
-			printf("inserted City Aggregation\n");
+		}
+		//else -> inserted City Aggregation
 	}
+	printf("City Aggregation finsish\n");
 	closeConn(conn);
 }
+/* to find count of all field in each city we also store every city in on CityAggregation Node */
 void City_Aggregation(){
-	struct CityAggregation * ca = NULL;
+	struct CityAggregation * ca = NULL;//create head of link list;
 	for(struct Data * d = fData;d!=NULL;d=d->next)
 	{
-		if(ca == NULL){
-			ca = (struct CityAggregation *)malloc(sizeof(struct CityAggregation));
-			ca->time =d->time;
-			strcpy(ca->city,d->city);
-			strcpy(ca->province,d->province);
-			ca->avgPrice = d->price;
-			ca->quantity = d->quantity;
-			ca->has_sold = d->has_sold;
-			ca->count=1;
-			ca->next = NULL;
-		}
 		int find = 0;
+		/*search in linked list to find if this data also has any previouse value at link list*/
 		for(struct CityAggregation * cad = ca;cad!=NULL;cad=cad->next){
+			/*if we can find any samilar city to this node of data link list then we can update it at CityAggregation linked list*/
 			if(strcmp(d->city,cad->city)==0){
 				find = 1;
 				cad->count++;
-				cad->avgPrice+=d->price;
+				cad->avgPrice+=d->price;// i also add it to other them but when i want to store it to database i change Sum to Avrage
 				cad->has_sold+=d->has_sold;
 				cad->quantity+=d->quantity;
 			}
 		}
 		if(!find){
-			struct CityAggregation * tmp; 
-			for(tmp = ca;tmp->next!=NULL;tmp=tmp->next);
-			tmp->next = (struct CityAggregation *)malloc(sizeof(struct CityAggregation));
-			tmp->next->time =d->time;
-			strcpy(tmp->next->city,d->city);
-			strcpy(tmp->next->province,d->province);
-			tmp->next->avgPrice = d->price;
-			tmp->next->quantity = d->quantity;
-			tmp->next->has_sold = d->has_sold;
-			tmp->next->count=1;
-			tmp->next->next = NULL;
+			/*if we cant find this city in CityAggregation we should add it to list*/
+			struct CityAggregation * node;
+			node = (struct CityAggregation *)malloc(sizeof(struct CityAggregation));
+			node->time =d->time;
+			strcpy(node->city,d->city);
+			strcpy(node->province,d->province);
+			node->avgPrice = d->price;
+			node->quantity = d->quantity;
+			node->has_sold = d->has_sold;
+			node->count=1;
+			node->next = NULL;
+			/* at first time ca is NULL */
+			if(ca==NULL)
+				ca = node;
+			else{
+				/*we walk along City Aggregation linked list to achive lastNode then we can add this new data to end of this chain*/
+				struct CityAggregation * tmp;
+				for(tmp = ca;tmp->next!=NULL;tmp=tmp->next);
+				tmp->next = node;
+			}
 		}
 	}
-	InsertCityAggregation(ca);
-	free_cityAggregation(ca);
+	InsertCityAggregation(ca);//after creating a full City aggregation of all data we can insert it to database
+	free_cityAggregation(ca);//then free this City Aggregation LinkList
 }
 void free_data(){
 	while(fData!=NULL){
@@ -175,25 +178,16 @@ void InsertStoreAggregation(struct StoreAggregation * start){
 			printf("an error accurre:%s",PQerrorMessage(conn));
 			closeConn(conn); 
 			return;
-		}else
-			printf("inserted Store Aggregation\n");
+		}
+		//else -> "inserted Store Aggregation
 	}
+	printf("Store Aggregation finsish\n");
 	closeConn(conn);
 }
 void Store_Aggregation(){
 	struct StoreAggregation * sa = NULL;
 	for(struct Data * d = fData;d!=NULL;d=d->next)
 	{
-		if(sa == NULL){
-			sa = (struct StoreAggregation *)malloc(sizeof(struct StoreAggregation));
-			sa->market_id =d->market_id;
-			strcpy(sa->city,d->city);
-			sa->price = d->price;
-			sa->quantity = d->quantity;
-			sa->has_sold = d->has_sold;
-			sa->count=1;
-			sa->next = NULL;
-		}
 		int find = 0;
 		for(struct StoreAggregation * sad = sa;sad!=NULL;sad=sad->next){
 			if(d->market_id==sad->market_id){
@@ -205,22 +199,29 @@ void Store_Aggregation(){
 			}
 		}
 		if(!find){
-			struct StoreAggregation * tmp; 
-			for(tmp = sa;tmp->next!=NULL;tmp=tmp->next);
-			tmp->next = (struct StoreAggregation *)malloc(sizeof(struct StoreAggregation));
-			tmp->next->market_id = d->market_id;
-			strcpy(tmp->next->city,d->city);
-			tmp->next->price = d->price;
-			tmp->next->quantity = d->quantity;
-			tmp->next->has_sold = d->has_sold;
-			tmp->next->count=1;
-			tmp->next->next = NULL;
+			struct StoreAggregation * node; 
+			node = (struct StoreAggregation *)malloc(sizeof(struct StoreAggregation));
+			node->market_id = d->market_id;
+			strcpy(node->city,d->city);
+			node->price = d->price;
+			node->quantity = d->quantity;
+			node->has_sold = d->has_sold;
+			node->count=1;
+			node->next = NULL;
+			if(sa==NULL)
+				sa = node;
+			else{
+				struct StoreAggregation * tmp;
+				for(tmp = sa;tmp->next!=NULL;tmp=tmp->next);
+				tmp->next = node;
+			}
 		}
 	}
+	printf("%d\n",sa->count);
 	InsertStoreAggregation(sa);
 	free_storeAggregation(sa);
 }
-
+/*get file name*/
 char * printfiles(){
 	DIR * dir;
 	struct dirent * ent;
@@ -233,12 +234,8 @@ char * printfiles(){
 			if(strcmp(ent->d_name,".")==0 || strcmp(ent->d_name,"..")==0)
 				continue;
 			else{
-				// int len = strlen(ent->d_name);
-				// if(len > 5 && strcmp(ent->d_name + len - 5, ".text") == 0)
-				// {
-					closedir (dir);
-					return ent->d_name;
-				// }			
+				closedir (dir);
+				return ent->d_name;
 			}
 		}
 		closedir(dir);
@@ -249,13 +246,16 @@ char * printfiles(){
 	
 	}
 }
+/* read data of file */
 struct Data *  fetch_data(char * address,struct Data * last)
 {
+	/* create a connection */
 	conn = PQconnectdb("user=star password=Amirhossein dbname=fpdb");
 	if(PQstatus(conn) == CONNECTION_BAD){
 		fprintf(stderr,"Connection faild : %s\n",PQerrorMessage(conn));
 		closeConn(conn);
 	}
+	/* read data form file*/
 	FILE * fp = fopen(address,"a+");
 
 
@@ -303,7 +303,8 @@ struct Data *  fetch_data(char * address,struct Data * last)
 
 		item = strtok(NULL,",");
 		has_sold = (int)strtol(item,NULL,10);
-
+		
+		/*write data in linked list and database*/
 		last = AddRowData(last,time,province,city,market_id,product_id,price,quantity,has_sold);
 		free(line);
 		
@@ -329,9 +330,18 @@ int main() {
 		}
 		file = printfiles();
 	}
-	
-	City_Aggregation();
-	// Store_Aggregation();
+	/*
+	* after read all data from file and then store it in fp_store_data
+	* we can start aggregation ....for this i store every line of file in struct Data
+	* and then each file that save in database then also add to linkedList
+	*
+	*
+	*
+	* we can use row data of linked list to aggregate City and Store
+	* and then free each node of Data linked list
+	*/
+	City_Aggregation();//in this function i describe all but ,dont reapet it for store Aggregation 
+	Store_Aggregation();//because it's very semilar to CityAggregation
 	free_data();
 	printf("\nfinished\n");
 	free(file);

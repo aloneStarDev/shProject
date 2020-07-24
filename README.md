@@ -75,6 +75,7 @@ create table fp_store_aggregation
     id        serial  not null primary key,
     market_id INTEGER NOT NULL,
     quantity  INTEGER NOT NULL,
+    city     varchar(50) not null,
     has_sold  INTEGER NOT NULL,
     price     BIGINT  NOT NULL
 );
